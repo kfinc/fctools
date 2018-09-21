@@ -185,3 +185,19 @@ def fc_cartography(M, modules):
 
             diagnostics[i, j] = m
     return diagnostics
+
+
+def fc_cartography_4d(M, modules):
+    """Function which calculates mean integration and recruitment values from sorted allegiance matrices. 4D version"""
+    sub_n = len(M[:,0,0,0])
+    ses_n = len(M[0,:,0,0])
+    mod_n = len(np.unique(modules))
+
+    fc_cart = np.zeros((sub_n, ses_n, mod_n, mod_n))
+
+    for i in range(sub_n):
+        for j in range(ses_n):
+            X = M[i,j,:,:]
+            fc_cart[i, j, :, :] = fc_cartography(X, modules)
+    return fc_cart
+

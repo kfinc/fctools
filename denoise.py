@@ -11,6 +11,7 @@ Last edit: Sat Sep 01 2018
 import pandas as pd
 import numpy as np 
 from sklearn import preprocessing
+from nistats.design_matrix import make_design_matrix
 
 
 def motion_24_friston(dataframe):
@@ -212,7 +213,7 @@ def outliers_fd_dvars(dataframe, fd = 0.5, dvars = 3):
     dataframe.loc[0] = 0
 
 
-    dvars_out = dataframe[dataframe.columns[0]].astype(float) > dvars
+    dvars_out = np.absolute(dataframe[dataframe.columns[0]].astype(float)) > dvars
     fd_out = dataframe[dataframe.columns[1]].astype(float) > fd
 
     outliers = (dvars_out == True) | (fd_out == True)
@@ -221,6 +222,15 @@ def outliers_fd_dvars(dataframe, fd = 0.5, dvars = 3):
 
     return outliers
 
+def get_condition_column(events, tr = 2, n_scans = 340):
+    """converts events file to pd dataframe with column representing each condition"""
+    frame_times = np.arange(n_scans) * tr
+    box = make_design_matrix(frame_times, events, hrf_model = None)
+    box = box.reset_index()
 
+    x = box.iloc[:,1:4] > 0.8
+    y = x.astype('int')
+    col = pd.DataFrame(y.idxmax(axis=1), columns = ['condition'])
+    return col
     
     
