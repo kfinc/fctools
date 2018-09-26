@@ -84,13 +84,13 @@ def allegiance_matrices_4d(M):
     array: 4D array S(subjects) x C(condition/session) x N(node) x N(node), where N x N is allegiance matrix 
         
     """
+    n_roi = len(M[0,0,:,0])  
+    n_sub = len(M[:,0,0,0])
+    n_ses = len(M[0,:,0,0])
+    AM = np.zeros((n_sub, n_ses, n_roi, n_roi))
     
-    AM = np.zeros((46, 4, 264, 264))
-    sub_n = len(M[:,0,0,0])
-    ses_n = len(M[0,:,0,0])
-    
-    for sub in range(sub_n):
-        for ses in range(ses_n):
+    for sub in range(n_sub):
+        for ses in range(n_ses):
             AM[sub, ses, :, :] = allegiance_matrix(M[sub, ses, :, :])
     return AM    
     
