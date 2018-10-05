@@ -43,33 +43,34 @@ def calculate_lsn_edges (A, labels):
 
 
 def allegiance_matrix(M):
-    """Calculates M x M allegiance matrix from M x N matrix, where M represents nodes, and N represents time windows. 
-    Each value on allegiance matrix represents the probability that node i and node j have been assigned to the same 
-    functional community (Bassett et al., 2014).
+    """Calculates n x n allegiance matrix P from n x t matrix M, where n represents nodes, and t represents time windows. 
+    Each value on allegiance matrix P represents the probability that node i and node j have been assigned to the same 
+    community (Bassett et al., 2014; Mattar et al., 2015).
     
     Parameters
     ------------
-    array: M x N module assignment matrix 
+    array: n x t module assignment matrix t
 
     Returns
     ------------
-    array: M x M allegiance matrix
-        
-    """
+    array: n x n allegiance matrix P """
     
-    roi_n = len(M[:,0])
-    A = np.zeros((roi_n, roi_n))
+    n_nodes = M.shape[0]
+    n_slices = M.shape[1]
+    T = np.zeros((n_nodes, n_nodes))
     
-    for i in range(roi_n):
+    for i in range(n_nodes):
         for j in range(i):
             if i == j:
                 continue
             else:
-                vector = M[i, :] == M[j, :]
-                p = vector.mean()
-                A[i, j] = p
-    A = A + A.T
-    return A
+                t = np.sum(M[i, :] == M[j, :])
+                T[i, j] = t
+    
+    P = (T + T.T)/n_slices
+    np.fill_diagonal(P, 1)
+    
+    return P
 
 
 def allegiance_matrices_4d(M):
@@ -94,6 +95,43 @@ def allegiance_matrices_4d(M):
             AM[sub, ses, :, :] = allegiance_matrix(M[sub, ses, :, :])
     return AM    
     
+def allegiance_matrix_opti(M):
+    """Calculates n x n allegiance matrix P from o x n x t matrix M, where o represents module community detection 
+    optimizations, n represents nodes, and t represents time windows. Each value on allegiance matrix PO represents the 
+    probability that node i and node j have been assigned to the same 
+    community (Bassett et al., 2014; Mattar et al., 2015).
+    
+    Parameters
+    ------------
+    array: o x n x t module assignment matrix t
+
+    Returns
+    ------------
+    array: n x n allegiance matrix P (mean across all optimizations)"""
+    
+    n_optimizations = M.shape[0]
+    n_nodes = M.shape[1]
+    P = np.zeros((n_optimizations, n_nodes, n_nodes))
+    PO = np.zeros((n_nodes, n_nodes))
+    
+    for i in range(n_optimizations):
+        P[i, :, :] = allegiance_matrix(M[i, :, :])
+        PO = P.mean(axis = 0)
+    return PO
+
+def allegiance_matrix_opti_5d(M):
+    
+    n_subs = M.shape[0]
+    n_sess = M.shape[1]
+    n_optimizations = M.shape[2]
+    n_nodes = M.shape[3]
+    
+    P = np.zeros((n_subs, n_sess, n_optimizations, n_nodes, n_nodes))
+    
+    for i in range(n_subs):
+        for j in range(n_sess):
+            P[i, j, :, :, :] = allegiance_matrix_opti_3d(M[i, j, :, :, :])
+    return P
 
 def sort_matrices_4d(M, idx):
     """Sorts matrices according to predefinded index.
@@ -105,9 +143,7 @@ def sort_matrices_4d(M, idx):
 
     Returns
     ------------
-    array: 4D array S(subjects) x C(condition/session) x N(node) x N(node) (sorted)
-    
-    """
+    array: 4D array S(subjects) x C(condition/session) x N(node) x N(node) (sorted)"""
     M1 = M[:,:,:,idx]
     M2 = M1[:,:,idx,:]
     return M2
@@ -122,10 +158,7 @@ def dumming(labels):
 
     Returns
     ------------
-    array: 3D array with M rows and N columns with binary variables
-    
-    
-    """
+    array: 3D array with M rows and N columns with binary variables"""
 
     columns = np.unique(labels)
     dummies = np.zeros((len(labels), len(columns)))
@@ -201,3 +234,51 @@ def fc_cartography_4d(M, modules):
             fc_cart[i, j, :, :] = fc_cartography(X, modules)
     return fc_cart
 
+
+def net_filter(M, modules, net_list):
+    modules = np.sort(np.asarray(modules))
+    net_filt = [True if elem in net_list else False for elem in modules]
+    M1 = M[net_filt, :]
+    M2 = M1[:, net_filt]
+    return M2
+
+def net_filter_4d(M, modules, net_list):
+    modules = np.sort(np.asarray(modules))
+    net_filt = [True if elem in net_list else False for elem in modules]
+    M1 = M[:, :, net_filt, :]
+    M2 = M1[:, :, :, net_filt]
+    return M2
+
+def single_window_allegiance(t):
+    n_nod = len(t)
+    T = np.zeros((n_nod, n_nod))
+
+    for i, row in enumerate(t):
+        for j, col in enumerate(t):
+            if row == col:
+                T[i,j] = 1
+            else:
+                continue
+    return T
+
+def single_window_allegiance_mean(M):
+    n_opt = M.shape[0]
+    n_nod = M.shape[1]
+    T = np.zeros((n_opt, n_nod, n_nod))
+
+    for i in range(n_opt):
+        T[i, :, :] = single_window_allegiance(M[i, :])
+    
+    return T.mean(axis=0)
+
+def all_window_allegiance_mean(M):
+
+    n_win = M.shape[2]
+    n_nod = M.shape[1]
+
+    T = np.zeros((n_win, n_nod, n_nod))
+
+    for i in range(n_win):
+        T[i, :, :] =  single_window_allegiance_mean(M[:,:,i])
+    
+    return T
