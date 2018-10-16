@@ -282,3 +282,19 @@ def all_window_allegiance_mean(M):
         T[i, :, :] =  single_window_allegiance_mean(M[:,:,i])
     
     return T
+
+def node_flexibility(node_vector):
+    n_win = len(node_vector)
+    count = 0
+    for i in range(n_win-1):
+        if node_vector[i] != node_vector[i+1]:
+            count += 1
+    return count/n_win
+
+
+def flexibility(matrix):
+    n_nod = matrix.shape[0]
+    n_win = matrix.shape[1]
+
+    node_flex = [node_flexibility(elem) for elem in matrix]
+    return node_flex

@@ -27,7 +27,8 @@ def matrix_networks_plot(M, network_colors, dpi = 300, colorbar = False, group =
                    col_colors=network_colors,
                    linewidths=0,
                    yticklabels=False,
-                   xticklabels=False)
+                   xticklabels=False,
+                   vmax = 0.8)
 
     # Adjust the postion of the main colorbar for the heatmap
     g.cax.set_position([.97, .2, .03, .45])
